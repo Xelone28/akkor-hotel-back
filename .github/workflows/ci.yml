@@ -100,16 +100,16 @@ jobs:
 
       - name: Build and tag Docker image
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}
+          IMAGE=ghcr.io/xelone28/akkor-hotel-back
           docker build --build-arg VERSION="$TAG" -t $IMAGE:$TAG .
           docker tag $IMAGE:$TAG $IMAGE:latest
 
       - name: Push Docker image with version tag
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}
+          IMAGE=ghcr.io/xelone28/akkor-hotel-back
           docker push $IMAGE:$TAG
 
       - name: Push Docker image with 'latest' tag
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}
+          IMAGE=ghcr.io/xelone28/akkor-hotel-back  
           docker push $IMAGE:latest

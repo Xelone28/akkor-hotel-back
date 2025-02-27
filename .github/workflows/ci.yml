@@ -54,7 +54,7 @@ jobs:
           poetry config virtualenvs.create false
 
       - name: Install dependencies  
-        run: poetry install
+        run: poetry install --no-root
 
       - name: Wait for database & MinIO  
         run: sleep 10

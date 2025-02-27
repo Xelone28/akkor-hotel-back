@@ -86,7 +86,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Determine Docker Image Tag
         id: image_tag
         run: |
@@ -100,14 +100,12 @@ jobs:
 
       - name: Build and tag Docker image
         run: |
-          TAG=$(echo ${GITHUB_REF#refs/tags/}) # Extract tag from 'refs/tags/vX.X.X' 
           IMAGE=ghcr.io/${{ github.repository }}
           docker build --build-arg VERSION="$TAG" -t $IMAGE:$TAG .
           docker tag $IMAGE:$TAG $IMAGE:latest
 
       - name: Push Docker image with version tag
         run: |
-          TAG=$(echo ${GITHUB_REF#refs/tags/})  
           IMAGE=ghcr.io/${{ github.repository }}
           docker push $IMAGE:$TAG
 

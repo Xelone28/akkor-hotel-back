@@ -20,11 +20,11 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U myuser"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-          
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
       minio:
         image: minio/minio
         env:
@@ -34,12 +34,12 @@ jobs:
           - 9000:9000
           - 9001:9001
         options: > 
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"  
-          --health-interval=5s 
-          --health-timeout=10s 
-          --health-retries=5
-        command: ["server", "--console-address", ":9001", "/data"]
-        
+          --health-cmd "curl -f http://localhost:9000/minio/health/live" 
+          --health-interval 5s 
+          --health-timeout 10s 
+          --health-retries 5 
+          --entrypoint sh minio/minio -c 'minio server --console-address ":9001" /data'
+
     steps:
       - name: Checkout the code
         uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
         run: |
           pip install poetry
           poetry config virtualenvs.create false
-          
+
       - name: Install dependencies  
         run: poetry install
 
@@ -90,13 +90,14 @@ jobs:
 
       - name: Build and tag Docker image
         run: |
-          TAG=${{ github.ref_name }}  # More reliable way to extract tag  
+          TAG=$(echo ${GITHUB_REF#refs/tags/}) # Extract tag from 'refs/tags/vX.X.X' 
           IMAGE=ghcr.io/${{ github.repository }}
           docker build --build-arg VERSION="$TAG" -t $IMAGE:$TAG .
           docker tag $IMAGE:$TAG $IMAGE:latest
 
       - name: Push Docker image with version tag
         run: |
+          TAG=$(echo ${GITHUB_REF#refs/tags/})  
           IMAGE=ghcr.io/${{ github.repository }}
           docker push $IMAGE:$TAG
 

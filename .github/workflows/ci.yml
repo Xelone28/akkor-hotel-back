@@ -86,6 +86,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Determine Docker Image Tag
+        id: image_tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"  # Extract only the version name
+          else
+            TAG="latest"  # Default to 'latest' when pushing from main
+          fi
+          echo "TAG=$TAG"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Build and tag Docker image
         run: |

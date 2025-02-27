@@ -35,10 +35,9 @@ jobs:
           - 9001:9001
         options: >-
           --health-cmd "curl -f http://localhost:9000/minio/health/live" 
-          --health-interval 5s 
-          --health-timeout 10s 
-          --health-retries 5 
-          --entrypoint sh minio/minio -c 'minio server --console-address ":9001" /data'
+          --health-interval=5s 
+          --health-timeout=10s 
+          --health-retries=5
 
     steps:
       - name: Checkout the code

@@ -38,7 +38,7 @@ jobs:
       - run: wget https://dl.min.io/client/mc/release/linux-amd64/mc
       - run: chmod +x ./mc
       - run: ./mc alias set minio http://127.0.0.1:9000 accesskey password
-      - run: ./mc mb --ignore-existing minio/MY_BUCKET
+      - run: ./mc mb --ignore-existing minio/mybucket
       
       - name: Checkout the code
         uses: actions/checkout@v4

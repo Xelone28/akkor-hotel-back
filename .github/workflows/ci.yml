@@ -7,6 +7,12 @@ on:
       - "v*"
 
 jobs:
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
   test:
     runs-on: ubuntu-latest
     
@@ -66,4 +72,4 @@ jobs:
           S3_ACCESS_KEY: "minioadmin"
           S3_SECRET_KEY: "minioadmin"
           S3_BUCKET: "testbucket"
-        run: poetry run pytest -v
+        run: pytest -v app/tests

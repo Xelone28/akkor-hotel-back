@@ -4,17 +4,23 @@ version = "0.1.0"
 description = ""
 authors = ["Gabriel Titeux <72764917+Xelone28@users.noreply.github.com>"]
 readme = "README.md"
+packages = [{include = "app"}]  # ✅ Make sure this folder exists!
 
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = "^0.115.8"
 uvicorn = "^0.34.0"
-pydantic = "^2.10.6"
+pydantic = {extras = ["email"], version = "^2.10.6"}
 pytest = "^8.3.4"
 sqlalchemy = "^2.0.38"
 databases = "^0.9.0"
 asyncpg = "^0.30.0"
 dotenv = "^0.9.9"
+bcrypt = "^4.3.0"
+greenlet = "^3.1.1"
+pyjwt = "^2.10.1"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-multipart = "^0.0.20"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -26,3 +32,8 @@ moto = "^5.1.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.poetry.scripts]
+start = "app:main"

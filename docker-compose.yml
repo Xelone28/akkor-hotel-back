@@ -15,6 +15,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d  # Init DB
 
   minio:
     image: minio/minio
@@ -32,7 +33,6 @@ services:
     volumes:
       - minio_data:/data
 
-
   minio-mc:
     image: minio/mc
     depends_on:
@@ -47,6 +47,21 @@ services:
       exit 0;
       "
 
+  fastapi_app:
+    build: .
+    container_name: fastapi_app
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - minio
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: ["/app/entrypoint.sh"]
+  
 volumes:
   postgres_data:
   minio_data:

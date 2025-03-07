@@ -50,7 +50,6 @@ services:
   fastapi_app:
     build: .
     container_name: fastapi_app
-    restart: always
     env_file:
       - .env
     depends_on:

@@ -36,4 +36,4 @@ build-backend = "poetry.core.masonry.api"
 asyncio_mode = "auto"
 
 [tool.poetry.scripts]
-start = "app:main"
+start = "app.main:start"

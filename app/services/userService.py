@@ -70,6 +70,7 @@ class UserService:
     async def delete_user(db: AsyncSession, user_id: int) -> bool:
         """Supprime un utilisateur et renvoie un booléen pour succès/échec."""
         user = await db.get(User, user_id)
+        
         if not user:
             return False
         

@@ -24,7 +24,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
       minio:
         image: lazybit/minio
         ports:
@@ -35,12 +34,16 @@ jobs:
         options: --name=minio --health-cmd "curl http://localhost:9000/minio/health/live"  
         
     steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      # ✅ Installe Docker et Docker Compose
+      - name: Set up Docker Buildx (inclut Docker Compose)
+        uses: docker/setup-buildx-action@v2
+
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
         
-      - name: Checkout the code
-        uses: actions/checkout@v4
-      
       - name: Set up Python  
         uses: actions/setup-python@v4  
         with:
@@ -50,18 +53,18 @@ jobs:
         run: |
           pip install poetry
           poetry config virtualenvs.create false
-
+          
       - name: Install dependencies  
         run: poetry install --no-root
 
       - name: Ensure FastAPI container starts  
-        run: docker-compose up -d fastapi_app
+        run: docker compose up -d fastapi_app  # ✅ Remplace `docker-compose` par `docker compose` !
 
       - name: Wait for all services  
         run: |
           echo "Waiting for PostgreSQL, Minio & FastAPI..."
           sleep 10
-
+          
       - name: Run Tests  
         env:
           DATABASE_URL: "postgresql+asyncpg://myuser:mypassword@postgres:5432/mydatabase"
@@ -69,4 +72,4 @@ jobs:
           S3_ACCESS_KEY: "minioadmin"
           S3_SECRET_KEY: "minioadmin"
           S3_BUCKET: "testbucket"
-        run: pytest -v app/tests
+        run: poetry run pytest -v app/tests

@@ -5,7 +5,12 @@ install:
 	poetry install
 
 run:
-	poetry run uvicorn main:app --host $(HOST) --port $(PORT) --reload
+	docker-compose up --build -d
 
 test:
+	docker-compose down -v
+	docker-compose up --build -d
+	echo "⏳ Attente du démarrage de FastAPI..."
+	sleep 5
 	cd app && poetry run pytest
+	docker-compose down -v

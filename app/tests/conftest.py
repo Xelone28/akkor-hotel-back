@@ -2,7 +2,7 @@ import pytest
 from app.managers.databaseManager import DatabaseManager
 from app.managers.s3Manager import S3Manager
 from fastapi.testclient import TestClient
-from main import app
+from app.main import app
 import pytest_asyncio
 
 

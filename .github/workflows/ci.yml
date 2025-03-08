@@ -33,7 +33,7 @@ jobs:
         uses: docker/setup-compose-action@v1
 
       - name: Start all services with Docker Compose  
-        run: docker-compose up --build -d  # 🚀 Tout démarre ici !
+        run: docker compose up --build -d  # 🚀 Tout démarre ici !
 
       - name: Wait for all services  
         run: |
@@ -71,4 +71,4 @@ jobs:
         run: poetry run pytest -v app/tests
 
       - name: Stop all services  
-        run: docker-compose down -v  # 🛑 Nettoie tout après les tests
+        run: docker compose down -v  # 🛑 Nettoie tout après les tests

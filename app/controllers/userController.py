@@ -16,10 +16,6 @@ router = APIRouter(prefix="/users", tags=["Users"])
 @router.post("/login", response_model=dict)
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     """Authentifie l'utilisateur avec son pseudo et renvoie un JWT."""
-    print("test login here")
-    print(form_data.username)
-    print(form_data.password)
-    # 🔹 Identification par pseudo (et non plus email)
     user = await UserService.get_user_by_pseudo_raw(db, form_data.username)
     print(user)
     if not user or not verify_password(form_data.password, user.password):

@@ -67,10 +67,7 @@ jobs:
           
       - name: Install dependencies  
         run: poetry install --no-root
-
-      - name: Ensure FastAPI container starts  
-        run: docker compose up -d fastapi_app  # ✅ Remplace `docker-compose` par `docker compose` !
-
+        
       - name: Wait for all services  
         run: |
           echo "Waiting for PostgreSQL, Minio & FastAPI..."

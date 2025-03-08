@@ -67,6 +67,9 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
           poetry --version  # ✅ Vérifie que Poetry est bien installé
+      
+      - name: Install dependencies  
+        run: poetry install --no-root  
           
       - name: Run Tests  
         env:

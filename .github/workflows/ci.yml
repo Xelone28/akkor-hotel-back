@@ -36,6 +36,17 @@ jobs:
     steps:
       - name: Checkout the code
         uses: actions/checkout@v4
+      
+      - name: Create .env file
+        run: |
+          echo "POSTGRES_USER=myuser" >> .env
+          echo "POSTGRES_PASSWORD=mypassword" >> .env
+          echo "POSTGRES_DB=mydatabase" >> .env
+          echo "S3_ENDPOINT=http://minio:9000" >> .env
+          echo "S3_ACCESS_KEY=minioadmin" >> .env
+          echo "S3_SECRET_KEY=minioadmin" >> .env
+          echo "S3_BUCKET=testbucket" >> .env
+        shell: bash
 
       # ✅ Installe Docker et Docker Compose
       - name: Set up Docker Buildx (inclut Docker Compose)

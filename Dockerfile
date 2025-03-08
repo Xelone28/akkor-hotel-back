@@ -7,6 +7,4 @@ RUN pip install poetry && poetry install --no-root
 
 COPY . .
 
-RUN chmod +x /app/entrypoint.sh
-
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["poetry", "run", "start"]

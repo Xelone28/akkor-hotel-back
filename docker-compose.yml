@@ -48,7 +48,9 @@ services:
       "
 
   fastapi_app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: fastapi_app
     env_file:
       - .env
@@ -59,7 +61,6 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-    command: ["/app/entrypoint.sh"]
   
 volumes:
   postgres_data:

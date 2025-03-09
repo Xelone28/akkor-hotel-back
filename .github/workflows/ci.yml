@@ -44,20 +44,17 @@ jobs:
       - name: Start all services with Docker Compose  
         run: docker compose up --build -d  
 
-      - name: Show Running Containers  
-        run: docker ps -a  # ✅ Debug Running Containers
-
       - name: Wait for services  
         run: |
           echo "Waiting for PostgreSQL & MinIO..."
-          sleep 20  # Add a delay to ensure services start
+          sleep 20
 
       - name: Install Poetry  
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
           echo "export PATH=$HOME/.local/bin:$PATH" >> ~/.bashrc
-          source ~/.bashrc  # Reload the shell
+          source ~/.bashrc
           poetry --version
 
       - name: Install dependencies  
@@ -65,13 +62,9 @@ jobs:
           
       - name: Run Tests  
         run: |
-          echo "🔍 Checking DATABASE_URL..."
-          echo "DATABASE_URL=${DATABASE_URL}"  # Debug print
-          echo "TEST_DATABASE_URL=${TEST_DATABASE_URL}"
-
           poetry run pytest -v app/tests
 
-      - name: Show Docker Logs  # ✅ Captures logs before stopping Docker
+      - name: Show Docker Logs
         if: failure()
         run: |
           echo "🚨 Capturing Docker Logs for Debugging..."

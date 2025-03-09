@@ -22,6 +22,16 @@ CREATE TABLE IF NOT EXISTS user_hotels (
     FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS hotel_pictures (
+    id SERIAL PRIMARY KEY,
+    hotel_id INTEGER NOT NULL,
+    uuid TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
+);
+
+-- DATA SAMPLE :
+
 INSERT INTO hotels (name, address, description, rating, breakfast) VALUES
     ('Hilton Paris Opera', 'Paris, France', 'Luxury hotel in the heart of Paris.', 4.7, TRUE),
     ('The Plaza Hotel', 'New York, USA', 'A legendary 5-star hotel in NYC.', 4.9, TRUE),

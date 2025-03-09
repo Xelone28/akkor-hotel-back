@@ -1,13 +1,15 @@
 import boto3
 import os
+import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
 
-S3_ENDPOINT = os.getenv("S3_ENDPOINT")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9000")
 S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
 S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
-S3_BUCKET = os.getenv("S3_BUCKET")
+S3_BUCKET = os.getenv("MINIO_BUCKET", "hotel-pictures")
+S3_CDN_URL = os.getenv("S3_CDN_URL", f"{S3_ENDPOINT}/{S3_BUCKET}")  # Auto CDN URL
 
 if not all([S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET]):
     raise ValueError("S3 configuration variables are missing")
@@ -25,19 +27,17 @@ class S3Manager:
                 aws_access_key_id=S3_ACCESS_KEY,
                 aws_secret_access_key=S3_SECRET_KEY,
             )
-            
+
             cls._instance.bucket_name = S3_BUCKET
 
         return cls._instance
 
-    def upload_file(self, file_path: str, object_name: str):
-        self.s3_client.upload_file(file_path, self.bucket_name, object_name)
-        return f"File {object_name} uploaded successfully"
+    def upload_file(self, file_path: str):
+        """Uploads a file and returns its public CDN URL."""
+        file_uuid = str(uuid.uuid4())
+        self.s3_client.upload_file(file_path, self.bucket_name, file_uuid)
+        return f"{S3_CDN_URL}/{file_uuid}"   # ✅ Generates Full Public CDN URL
 
-    def download_file(self, object_name: str, output_path: str):
-        self.s3_client.download_file(self.bucket_name, object_name, output_path)
-        return f"File {object_name} downloaded successfully to {output_path}"
-
-    def list_files(self):
-        response = self.s3_client.list_objects_v2(Bucket=self.bucket_name)
-        return [item["Key"] for item in response.get("Contents", [])]
+    def get_file_url(self, object_uuid: str):
+        """Returns the public URL of a file in S3 bucket."""
+        return f"{S3_CDN_URL}/{object_uuid}"   # ✅ Directly fetches the public URL

@@ -24,11 +24,9 @@ async def get_current_user_info(
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     """Authentifie l'utilisateur avec son pseudo et renvoie un JWT."""
     user = await UserService.get_user_by_pseudo_raw(db, form_data.username)
-    print(user)
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Pseudo ou mot de passe invalide")
 
-    # 🔥 Génération du Token JWT
     access_token = create_access_token(data={"sub": user.pseudo}, expires_delta=timedelta(minutes=60))
 
     return {"access_token": access_token, "token_type": "bearer"}

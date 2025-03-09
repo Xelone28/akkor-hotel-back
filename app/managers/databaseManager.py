@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from databases import Database
 
-# Initialize SQLAlchemy base (important for Alembic)
 Base = declarative_base()
 
 class DatabaseManager:
@@ -13,9 +12,10 @@ class DatabaseManager:
         """Singleton pattern for managing database connections."""
         if cls._instance is None:
             cls._instance = super(DatabaseManager, cls).__new__(cls)
-
+            
             db_url = database_url or os.getenv("DATABASE_URL")
-
+            print("\n Check for value here")
+            print("\n", db_url)
             if not db_url:
                 raise ValueError("DATABASE_URL is not set")
 

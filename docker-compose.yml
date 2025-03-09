@@ -15,7 +15,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db-init:/docker-entrypoint-initdb.d  # Init DB
+      - ./db-init:/docker-entrypoint-initdb.d
 
   minio:
     image: minio/minio
@@ -33,7 +33,7 @@ services:
     volumes:
       - minio_data:/data
 
-  minio-mc:
+  minio-config:
     image: minio/mc
     depends_on:
       - minio
@@ -42,8 +42,8 @@ services:
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-      /usr/bin/mc mb myminio/${MINIO_BUCKET};
-      /usr/bin/mc policy set public myminio/${MINIO_BUCKET};
+      /usr/bin/mc mb --ignore-existing myminio/${MINIO_BUCKET};
+      /usr/bin/mc anonymous set public myminio/${MINIO_BUCKET};
       exit 0;
       "
 

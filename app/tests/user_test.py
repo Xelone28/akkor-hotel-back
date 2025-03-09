@@ -11,7 +11,7 @@ async def test_user():
         "password": "testpassword"
     }
 
-    async with AsyncClient(base_url="http://fastapi_app:8000/users") as ac:
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
         response = await ac.post("/", json=user_data)
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}, response: {response.text}"
@@ -19,7 +19,7 @@ async def test_user():
 
     yield {"id": user["id"], "pseudo": user["pseudo"], "email": user["email"], "password": "testpassword"}
 
-    async with AsyncClient(base_url="http://fastapi_app:8000/users") as ac:
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
         auth_response = await ac.post("/login", data={"username": "testuser", "password": "testpassword"})
         if auth_response.status_code == 200:
             token = auth_response.json()["access_token"]
@@ -31,7 +31,7 @@ async def test_user():
 @pytest.mark.asyncio
 async def test_login_user(test_user):
     """Test to login a valid user"""
-    async with AsyncClient(base_url="http://fastapi_app:8000/users") as ac:
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
         response = await ac.post("/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
 
         assert response.status_code == 200, f"Expected 200, got {response.status_code}, response: {response.text}"
@@ -43,7 +43,7 @@ async def test_login_user(test_user):
 @pytest.mark.asyncio
 async def test_login_fail():
     """Test to login with wrong credentials"""
-    async with AsyncClient(base_url="http://fastapi_app:8000/users") as ac:
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
         response = await ac.post("/login", data={"username": "randomUsername", "password": "randomPassword"})
 
     assert response.status_code == 401, f"Expected 401, got {response.status_code}, response: {response.text}"
@@ -58,7 +58,7 @@ async def test_delete_protected():
         "password": "testpassword"
     }
 
-    async with AsyncClient(base_url="http://fastapi_app:8000/users") as ac:
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
         create_user = await ac.post("/", json=user_data)
 
         assert create_user.status_code == 201, f"Expected 201, got {create_user.status_code}, response: {create_user.text}"
@@ -75,7 +75,8 @@ async def test_delete_protected():
 @pytest.mark.asyncio
 async def test_delete_fail_no_auth(test_user):
     """Test to delete a user without authentication"""
-    async with AsyncClient(base_url="http://fastapi_app:8000/users") as ac:
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
+
         delete_response = await ac.delete(f"/{test_user['id']}")
 
     assert delete_response.status_code == 401, f"Expected 401, got {delete_response.status_code}, response: {delete_response.text}"
@@ -84,7 +85,7 @@ async def test_delete_fail_no_auth(test_user):
 async def test_update_user(test_user):
     """Test to update an existing user profile."""
     
-    async with AsyncClient(base_url="http://fastapi_app:8000/users") as ac:
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
         auth_response = await ac.post("/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
 
         assert auth_response.status_code == 200, f"Expected 200, got {auth_response.status_code}, response: {auth_response.text}"

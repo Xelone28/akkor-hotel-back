@@ -1,32 +1,31 @@
 import os
-from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from databases import Database
-
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL is not set")
 
 # Initialize SQLAlchemy base (important for Alembic)
 Base = declarative_base()
 
 class DatabaseManager:
     _instance = None
-
-    def __new__(cls):
+    
+    def __new__(cls, database_url: str = None):
+        """Singleton pattern for managing database connections."""
         if cls._instance is None:
             cls._instance = super(DatabaseManager, cls).__new__(cls)
-            cls._instance.engine = create_async_engine(DATABASE_URL, echo=True)
+
+            db_url = database_url or os.getenv("DATABASE_URL")
+
+            if not db_url:
+                raise ValueError("DATABASE_URL is not set")
+
+            cls._instance.engine = create_async_engine(db_url, echo=True)
             cls._instance.async_session = sessionmaker(
                 cls._instance.engine,
                 class_=AsyncSession,
                 expire_on_commit=False
             )
-            cls._instance.database = Database(DATABASE_URL)  # FastAPI's databases library
+            cls._instance.database = Database(db_url)
 
         return cls._instance
 
@@ -40,8 +39,8 @@ class DatabaseManager:
         if self.database.is_connected:
             await self.database.disconnect()
 
-# Dependency for FastAPI
-async def get_db():
-    """Dependency for getting a DB session."""
-    async with DatabaseManager().async_session() as session:
+async def get_db(database_url: str = None):
+    """Dependency for getting a DB session with optional parameter."""
+    db_manager = DatabaseManager(database_url)
+    async with db_manager.async_session() as session:
         yield session

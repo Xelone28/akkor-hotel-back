@@ -30,7 +30,7 @@ jobs:
 
       - name: Set up environment variables
         run: |
-          echo "DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@postgres_db:5432/akkor_hotel" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@localhost:5432/akkor_hotel" >> $GITHUB_ENV
           echo "S3_ENDPOINT=http://localhost:9000" >> $GITHUB_ENV
           echo "S3_BUCKET=testbucket" >> $GITHUB_ENV
           echo "S3_ACCESS_KEY=minioadmin" >> $GITHUB_ENV

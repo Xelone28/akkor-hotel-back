@@ -67,11 +67,15 @@ jobs:
           echo "DATABASE_URL=${DATABASE_URL}"  # Debug print
           poetry run pytest -v app/tests
 
-      - name: Show Docker Logs  # ✅ Captures Debug Logs BEFORE shutdown
+      - name: Show Docker Logs  # ✅ Captures logs before stopping Docker
         if: failure()
         run: |
           echo "🚨 Capturing Docker Logs for Debugging..."
-          docker logs $(docker ps -aq)
+          for container in $(docker ps -aq); do
+            echo "🚀 Logs for container: $container"
+            docker logs "$container"
+            echo "-----------------------------------"
+          done
 
       - name: Stop all services  
         run: docker compose down -v

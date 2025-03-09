@@ -16,14 +16,14 @@ jobs:
       
       - name: Create .env file
         run: |
-          echo "POSTGRES_USER=myuser" >> .env
-          echo "POSTGRES_PASSWORD=mypassword" >> .env
-          echo "POSTGRES_DB=mydatabase" >> .env
-          echo "S3_ENDPOINT=http://minio:9000" >> .env
+          echo "POSTGRES_USER=akkor_hotel" >> .env
+          echo "POSTGRES_PASSWORD=4citesupinfo2025" >> .env
+          echo "POSTGRES_DB=akkor_hotel" >> .env
+          echo "S3_ENDPOINT=http://localhost:9000" >> .env
           echo "S3_ACCESS_KEY=minioadmin" >> .env
           echo "S3_SECRET_KEY=minioadmin" >> .env
           echo "S3_BUCKET=testbucket" >> .env
-          echo "DATABASE_URL=postgresql+asyncpg://myuser:mypassword@postgres_db:5432/mydatabase"
+          echo "DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@localhost:5432/akkor_hotel"
 
         shell: bash
 
@@ -74,12 +74,6 @@ jobs:
         run: poetry install --no-root  
           
       - name: Run Tests  
-        env:
-          DATABASE_URL: "postgresql+asyncpg://myuser:mypassword@postgres_db:5432/mydatabase"
-          S3_ENDPOINT: "http://minio:9000"
-          S3_ACCESS_KEY: "minioadmin"
-          S3_SECRET_KEY: "minioadmin"
-          S3_BUCKET: "testbucket"
         run: poetry run pytest -v app/tests
 
       - name: Stop all services  

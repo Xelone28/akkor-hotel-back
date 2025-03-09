@@ -23,14 +23,16 @@ jobs:
           echo "S3_ACCESS_KEY=minioadmin" >> .env
           echo "S3_SECRET_KEY=minioadmin" >> .env
           echo "S3_BUCKET=testbucket" >> .env
-          echo "DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@localhost:5432/akkor_hotel" >> .env
+          echo "DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@postgres_db:5432/akkor_hotel" >> .env
+          echo "TEST_DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@localhost:5432/akkor_hotel" >> .env
 
       - name: Check .env file
         run: cat .env  # Debugging – Show contents of .env
 
       - name: Set up environment variables
         run: |
-          echo "DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@localhost:5432/akkor_hotel" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@postgres_db:5432/akkor_hotel" >> $GITHUB_ENV
+          echo "TEST_DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@localhost:5432/akkor_hotel" >> $GITHUB_ENV
           echo "S3_ENDPOINT=http://localhost:9000" >> $GITHUB_ENV
           echo "S3_BUCKET=testbucket" >> $GITHUB_ENV
           echo "S3_ACCESS_KEY=minioadmin" >> $GITHUB_ENV
@@ -65,6 +67,8 @@ jobs:
         run: |
           echo "🔍 Checking DATABASE_URL..."
           echo "DATABASE_URL=${DATABASE_URL}"  # Debug print
+          echo "TEST_DATABASE_URL=${TEST_DATABASE_URL}"
+
           poetry run pytest -v app/tests
 
       - name: Show Docker Logs  # ✅ Captures logs before stopping Docker

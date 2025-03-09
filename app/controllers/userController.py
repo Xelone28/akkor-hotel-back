@@ -13,6 +13,13 @@ from datetime import timedelta
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_info(
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Retrieve the current authenticated user."""
+    return current_user
+
 @router.post("/login", response_model=dict)
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     """Authentifie l'utilisateur avec son pseudo et renvoie un JWT."""

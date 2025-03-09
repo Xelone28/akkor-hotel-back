@@ -71,17 +71,14 @@ jobs:
           poetry --version  # ✅ Vérifie que Poetry est bien installé
       
       - name: Install dependencies  
-        env:
-          DATABASE_URL: "DATABASE_URL=postgresql+asyncpg://akkor_hotel:4citesupinfo2025@localhost:5432/akkor_hotel"
-          S3_ENDPOINT: "http://localhost:9000"
-          S3_ACCESS_KEY: "minioadmin"
-          S3_SECRET_KEY: "minioadmin"
-          S3_BUCKET: "testbucket"
-
-        run: poetry install --no-root  
+        run: |
+          export $(grep -v '^#' .env | xargs)
+          poetry install --no-root
           
       - name: Run Tests  
-        run: poetry run pytest -v app/tests
+        run: |
+          export $(grep -v '^#' .env | xargs)
+          poetry run pytest -v app/tests
 
       - name: Stop all services  
         run: docker compose down -v  # 🛑 Nettoie tout après les tests

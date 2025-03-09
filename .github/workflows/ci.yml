@@ -23,6 +23,8 @@ jobs:
           echo "S3_ACCESS_KEY=minioadmin" >> .env
           echo "S3_SECRET_KEY=minioadmin" >> .env
           echo "S3_BUCKET=testbucket" >> .env
+          echo "DATABASE_URL=postgresql+asyncpg://myuser:mypassword@postgres_db:5432/mydatabase"
+
         shell: bash
 
       # ✅ Installe Docker et Docker Compose

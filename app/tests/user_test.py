@@ -76,6 +76,7 @@ async def test_delete_protected():
 async def test_delete_fail_no_auth(test_user):
     """Test to delete a user without authentication"""
     async with AsyncClient(base_url="http://localhost:8000/users") as ac:
+
         delete_response = await ac.delete(f"/{test_user['id']}")
 
     assert delete_response.status_code == 401, f"Expected 401, got {delete_response.status_code}, response: {delete_response.text}"

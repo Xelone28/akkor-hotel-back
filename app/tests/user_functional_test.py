@@ -1,13 +1,9 @@
-import time
+import os
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from app.schemas.userSchemas import UserCreate, UserUpdate
-from app.managers.databaseManager import Base
-from httpx import AsyncClient
-from app.main import app
-import os
 from dotenv import load_dotenv
 from app.services.userService import UserService
 from sqlalchemy.pool import NullPool
@@ -21,13 +17,12 @@ TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_c
 
 @pytest.fixture()
 async def db_session():
-    """Crée une session isolée pour chaque test fonctionnel."""
+    """Create an isolated session for functional test."""
     async with TestingSessionLocal() as session:
         session.begin()
         yield session
         await session.commit()
         await session.close()
-
 
 @pytest_asyncio.fixture(scope="function")
 async def test_user(db_session):
@@ -38,15 +33,13 @@ async def test_user(db_session):
         password="securepassword"
     )
     user = await UserService.create_user(db_session, user_data)
-    yield user  # Fournit l'utilisateur pour les tests
+    yield user
     success = await UserService.delete_user(db_session, user.id)
     assert success is True
 
-
-
 @pytest.mark.asyncio
 async def test_create_user(db_session):
-    """Teste la création d'un utilisateur."""
+    """Tests user creation"""
     user_data = UserCreate(
         email="newuser@example.com",
         pseudo="newuser",
@@ -61,7 +54,7 @@ async def test_create_user(db_session):
 
 @pytest.mark.asyncio
 async def test_get_user(db_session, test_user):
-    """Vérifie qu'on peut récupérer un utilisateur par ID."""
+    """Test to get a user by id."""
     found_user = await UserService.get_user(db_session, test_user.id)
     
     assert found_user is not None
@@ -70,7 +63,7 @@ async def test_get_user(db_session, test_user):
 
 @pytest.mark.asyncio
 async def test_get_users(db_session, test_user):
-    """Vérifie qu'on peut récupérer tous les utilisateurs."""
+    """Test to recover every user."""
     users = await UserService.get_users(db_session)
 
     assert len(users) > 0
@@ -78,7 +71,7 @@ async def test_get_users(db_session, test_user):
 
 @pytest.mark.asyncio
 async def test_update_user(db_session, test_user):
-    """Vérifie que les informations d'un utilisateur peuvent être mises à jour."""
+    """Test that user data can be updated."""
     update_data = UserUpdate(email="updated@example.com", pseudo="updateduser")
 
     updated_user = await UserService.update_user(db_session, test_user.id, update_data)
@@ -89,7 +82,7 @@ async def test_update_user(db_session, test_user):
 
 @pytest.mark.asyncio
 async def test_get_user_by_email(db_session, test_user):
-    """Vérifie qu'on peut récupérer un utilisateur par email."""
+    """Tests that we can recover a user by email."""
     found_user = await UserService.get_user_by_email(db_session, test_user.email)
 
     assert found_user is not None
@@ -97,7 +90,7 @@ async def test_get_user_by_email(db_session, test_user):
 
 @pytest.mark.asyncio
 async def test_get_user_by_pseudo(db_session, test_user):
-    """Vérifie qu'on peut récupérer un utilisateur par pseudo."""
+    """Tests that we can recover a user by pseudo."""
     found_user = await UserService.get_user_by_pseudo(db_session, test_user.pseudo)
 
     assert found_user is not None

@@ -4,8 +4,6 @@ from sqlalchemy.exc import IntegrityError
 from app.models.hotelModel import Hotel
 from app.schemas.hotelSchemas import HotelCreate, HotelUpdate, HotelResponse
 from typing import List, Optional
-from app.services.userHotelService import UserHotelService
-from app.schemas.userHotelSchemas import UserHotelCreate
 
 class HotelService:
 
@@ -50,9 +48,6 @@ class HotelService:
         try:
             await db.commit()
             await db.refresh(new_hotel)
-            
-            ownership_data = UserHotelCreate(user_id=user_id, hotel_id=new_hotel.id)
-            await UserHotelService.assign_owner(db, ownership_data)
 
             return HotelResponse.model_validate(new_hotel)
         except IntegrityError:

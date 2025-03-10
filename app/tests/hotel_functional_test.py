@@ -8,7 +8,6 @@ from app.schemas.userSchemas import UserCreate
 from dotenv import load_dotenv
 from app.services.hotelService import HotelService
 from app.services.userService import UserService
-from app.services.userHotelService import UserHotelService
 from sqlalchemy.pool import NullPool
 
 load_dotenv()
@@ -18,31 +17,30 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 engine = create_async_engine(TEST_DATABASE_URL, echo=True, future=True, poolclass=NullPool)
 TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
-@pytest_asyncio.fixture(scope="function")
+@pytest.fixture()
 async def db_session():
-    """Create an isolated session for each test."""
+    """Create an isolated session for each fonctionnal test."""
     async with TestingSessionLocal() as session:
-        await session.begin()
+        session.begin()
         yield session
         await session.commit()
         await session.close()
 
-
-@pytest_asyncio.fixture(scope="function")
+@pytest_asyncio.fixture()
 async def test_user(db_session):
     """Create a test user."""
     user_data = UserCreate(
-        email="hoteluser@example.com",
-        pseudo="hotelowner",
+        email="testingNewUser@example.com",
+        pseudo="testingNewUser",
         password="securepassword"
     )
     user = await UserService.create_user(db_session, user_data)
-    yield user  # Provide the created user for tests
+    yield user
     success = await UserService.delete_user(db_session, user.id)
     assert success is True
 
 
-@pytest_asyncio.fixture(scope="function")
+@pytest_asyncio.fixture()
 async def test_hotel(db_session, test_user):
     """Create a test hotel and assign it to the test user."""
     hotel_data = HotelCreate(
@@ -53,9 +51,8 @@ async def test_hotel(db_session, test_user):
         breakfast=True
     )
     hotel = await HotelService.create_hotel(db_session, hotel_data, test_user.id)
-    await db_session.commit()  # 🚀 Ensure the hotel is persisted
 
-    yield hotel  # Provide the created hotel for the tests
+    yield hotel
     success = await HotelService.delete_hotel(db_session, hotel.id)
     assert success is True
 
@@ -77,11 +74,6 @@ async def test_create_hotel(db_session, test_user):
     assert hotel.name == "Hilton Test"
     assert hotel.address == "Paris, France"
 
-    # Verify ownership was assigned
-    is_owner = await UserHotelService.is_owner(db_session, test_user.id, hotel.id)
-    assert is_owner is True
-
-
 @pytest.mark.asyncio
 async def test_get_hotel(db_session, test_hotel):
     """Ensure we can retrieve a hotel by ID."""
@@ -93,11 +85,9 @@ async def test_get_hotel(db_session, test_hotel):
 
 
 @pytest.mark.asyncio
-async def test_get_hotels(db_session, test_hotel):
+async def test_get_hotels(db_session):
     """Ensure we can retrieve all hotels."""
     hotels = await HotelService.get_hotels(db_session)
-    print("\nRetrieved hotels:", hotels)  # 🛠 Debugging Line
-
     assert len(hotels) > 0
 
 
@@ -149,7 +139,7 @@ async def test_delete_hotel(db_session, test_user):
         breakfast=True
     )
 
-    testing = await HotelService.create_hotel(db_session, hotel_data, test_user.id)
-    """Ensure a hotel can be deleted."""
-    success = await HotelService.delete_hotel(db_session, testing.id)
+    newHotel = await HotelService.create_hotel(db_session, hotel_data, test_user.id)
+
+    success = await HotelService.delete_hotel(db_session, newHotel.id)
     assert success is True

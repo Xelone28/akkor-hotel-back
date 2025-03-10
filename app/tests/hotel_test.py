@@ -4,28 +4,6 @@ from httpx import AsyncClient
 
 BASE_URL = "http://localhost:8000"
 
-@pytest_asyncio.fixture
-async def test_hotel(test_admin_user):
-    """Create a hotel for testing and delete it afterward"""
-    hotel_data = {
-        "name": "Test Hotel",
-        "address": "Test Street, Paris",
-        "description": "A sample hotel for testing.",
-        "rating": 4.5,
-        "breakfast": True
-    }
-
-    async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
-        create_response = await ac.post("/", json=hotel_data, headers=test_admin_user["headers"])
-        assert create_response.status_code == 201, f"Expected 201, got {create_response.status_code}, response: {create_response.text}"
-        hotel = create_response.json()
-
-    yield {**hotel, "headers": test_admin_user["headers"]}
-
-    async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
-        delete_response = await ac.delete(f"/{hotel['id']}", headers=test_admin_user["headers"])
-        assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
-
 @pytest.mark.asyncio
 async def test_create_hotel(test_admin_user):
     """Test hotel creation and ownership assignment."""

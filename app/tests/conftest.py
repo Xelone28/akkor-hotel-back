@@ -39,19 +39,23 @@ async def test_user():
 
     async with AsyncClient(base_url="http://localhost:8000/users") as ac:
         response = await ac.post("/", json=user_data)
-
         assert response.status_code == 201, f"Expected 201, got {response.status_code}, response: {response.text}"
         user = response.json()
 
-    yield {"id": user["id"], "pseudo": user["pseudo"], "email": user["email"], "password": "testpassword"}
-
-    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
-        auth_response = await ac.post("/login", data={"username": "testuser", "password": "testpassword"})
+        auth_response = await ac.post("/login", data={"username": user_data["pseudo"], "password": user_data["password"]})
         if auth_response.status_code == 200:
             token = auth_response.json()["access_token"]
             headers = {"Authorization": f"Bearer {token}"}
-            delete_response = await ac.delete(f"/{user['id']}", headers=headers)
 
+    yield {"id": user["id"], "pseudo": user["pseudo"], "email": user["email"], "password": user_data["password"], "headers": headers}
+
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
+        new_auth_response = await ac.post("/login", data={"username": user_data["pseudo"], "password": user_data["password"]})
+        if new_auth_response.status_code == 200:
+            new_token = auth_response.json()["access_token"]
+            new_headers = {"Authorization": f"Bearer {new_token}"}
+
+            delete_response = await ac.delete(f"/{user['id']}", headers=new_headers)
             assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
 
 @pytest_asyncio.fixture
@@ -88,6 +92,29 @@ async def test_admin_user(db_session: AsyncSession):
     async with AsyncClient(base_url="http://localhost:8000/users") as ac:
         delete_response = await ac.delete(f"/{user['id']}", headers=headers)
         assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
+
+@pytest_asyncio.fixture
+async def test_hotel(test_admin_user):
+    """Create a hotel for testing and delete it afterward"""
+    hotel_data = {
+        "name": "Test Hotel",
+        "address": "Test Street, Paris",
+        "description": "A sample hotel for testing.",
+        "rating": 4.5,
+        "breakfast": True
+    }
+
+    async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
+        create_response = await ac.post("/", json=hotel_data, headers=test_admin_user["headers"])
+        assert create_response.status_code == 201, f"Expected 201, got {create_response.status_code}, response: {create_response.text}"
+        hotel = create_response.json()
+
+    yield {**hotel, "headers": test_admin_user["headers"]}
+
+    async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
+        delete_response = await ac.delete(f"/{hotel['id']}", headers=test_admin_user["headers"])
+        assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
+
 
 
 @pytest.fixture()

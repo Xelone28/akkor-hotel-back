@@ -1,73 +1,8 @@
-import os 
 from dotenv import load_dotenv
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
-from app.schemas.userRoleSchemas import UserRoleCreate
-from sqlalchemy.pool import NullPool
-from app.services.userRoleService import UserRoleService
 
 load_dotenv()
-
-TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
-
-engine = create_async_engine(TEST_DATABASE_URL, echo=True, future=True, poolclass=NullPool)
-TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
-
-@pytest.fixture()
-async def db_session():
-    """Create an isolated session to run functional tests."""
-    async with TestingSessionLocal() as session:
-        session.begin()
-        yield session
-        await session.commit()
-        await session.close()
-
-@pytest_asyncio.fixture
-async def test_user():
-    """Create a user and delete it afterward"""
-    user_data = {
-        "email": "test@example.com",
-        "pseudo": "testuser",
-        "password": "testpassword"   
-    }
-
-    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
-        response = await ac.post("/", json=user_data)
-
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}, response: {response.text}"
-        user = response.json()
-
-    yield {"id": user["id"], "pseudo": user["pseudo"], "email": user["email"], "password": "testpassword"}
-
-    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
-        auth_response = await ac.post("/login", data={"username": "testuser", "password": "testpassword"})
-        if auth_response.status_code == 200:
-            token = auth_response.json()["access_token"]
-            headers = {"Authorization": f"Bearer {token}"}
-            delete_response = await ac.delete(f"/{user['id']}", headers=headers)
-
-            assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
-
-@pytest_asyncio.fixture
-async def test_admin_user(test_user, db_session: AsyncSession):
-    """
-    Promote a test user to admin.
-    """
-    role_data = UserRoleCreate(user_id=test_user["id"], is_admin=True)
-    await UserRoleService.assign_role(db_session, role_data)
-
-    # ✅ Authenticate as admin  
-    async with AsyncClient(base_url=f"http://localhost:8000/users") as ac:
-        auth_response = await ac.post("/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
-        assert auth_response.status_code == 200, f"Login failed: {auth_response.text}"
-       
-        token = auth_response.json()["access_token"]
-    
-    yield {"id": test_user["id"], "pseudo": test_user["pseudo"], "headers": {"Authorization": f"Bearer {token}"}}
-    await UserRoleService.delete_role(db_session, test_user["id"])
 
 @pytest.mark.asyncio
 async def test_login_user(test_user):
@@ -177,3 +112,21 @@ async def test_non_admin_cannot_update_user_role(test_user):
         
         update_response = await ac.patch(f"/{test_user["id"]}", json={"is_admin": True}, headers=headers)
         assert update_response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_get_users_includes_roles(test_user, test_admin_user):
+    """Ensure GET /users includes users' admin status."""
+    print("simple user id",test_user["id"])
+    print("admin user id",test_admin_user["id"])
+
+    # there is an issue here because you are using both test_user and test_admin_user. The scope does not allow that
+    
+    async with AsyncClient(base_url=f"http://localhost:8000/users") as ac:
+        response = await ac.get("/")
+        
+        assert response.status_code == 200
+        users = response.json()
+
+        assert isinstance(users, list)
+        assert any(user["id"] == test_user["id"] and user["is_admin"] is False for user in users)
+        assert any(user["id"] == test_admin_user["id"] and user["is_admin"] is True for user in users)

@@ -1,72 +1,8 @@
-import os
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from app.schemas.userRoleSchemas import UserRoleCreate
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
-from app.services.userRoleService import UserRoleService
-
 
 BASE_URL = "http://localhost:8000"
-
-TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
-
-engine = create_async_engine(TEST_DATABASE_URL, echo=True, future=True, poolclass=NullPool)
-TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
-
-@pytest.fixture()
-async def db_session():
-    """Create an isolated session for each functional test"""
-    async with TestingSessionLocal() as session:
-        session.begin()
-        yield session
-        await session.commit()
-        await session.close()
-
-@pytest_asyncio.fixture 
-async def test_user():
-    """Create a user and delete it afterward"""
-    user_data = {
-        "email": "test@example.com",
-        "pseudo": "testuser",
-        "password": "testpassword"   
-    }
-
-    async with AsyncClient(base_url=f"{BASE_URL}/users") as ac:
-        response = await ac.post("/", json=user_data)
-
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}, response: {response.text}"
-        user = response.json()
-
-    yield {"id": user["id"], "pseudo": user["pseudo"], "email": user["email"], "password": "testpassword"}
-
-    async with AsyncClient(base_url=f"{BASE_URL}/users") as ac:
-        auth_response = await ac.post("/login", data={"username": "testuser", "password": "testpassword"})
-        if auth_response.status_code == 200:
-            token = auth_response.json()["access_token"]
-            headers = {"Authorization": f"Bearer {token}"}
-            delete_response = await ac.delete(f"/{user['id']}", headers=headers)
-
-            assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
-    
-@pytest_asyncio.fixture
-async def test_admin_user(test_user, db_session: AsyncSession):
-    """
-    Promote a test user to admin.
-    """
-    role_data = UserRoleCreate(user_id=test_user["id"], is_admin=True)
-    await UserRoleService.assign_role(db_session, role_data)
-
-    # ✅ Authenticate as admin  
-    async with AsyncClient(base_url=f"{BASE_URL}/users") as ac:
-        auth_response = await ac.post("/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
-        assert auth_response.status_code == 200, f"Login failed: {auth_response.text}"
-       
-        token = auth_response.json()["access_token"]
-    
-    yield {"id": test_user["id"], "pseudo": test_user["pseudo"], "headers": {"Authorization": f"Bearer {token}"}}
 
 @pytest_asyncio.fixture
 async def test_hotel(test_admin_user):

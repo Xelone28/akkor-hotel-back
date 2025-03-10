@@ -1,7 +1,3 @@
-import os 
-from dotenv import load_dotenv
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,23 +5,6 @@ from app.schemas.roomSchemas import RoomCreate, RoomUpdate
 from app.services.roomService import RoomService
 from app.services.hotelService import HotelService
 from app.schemas.hotelSchemas import HotelCreate
-from sqlalchemy.pool import NullPool
-
-load_dotenv()
-
-TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
-
-engine = create_async_engine(TEST_DATABASE_URL, echo=True, future=True, poolclass=NullPool)
-TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
-
-@pytest_asyncio.fixture()
-async def db_session():
-    """Create an isolated session for each test."""
-    async with TestingSessionLocal() as session:
-        await session.begin()
-        yield session
-        await session.commit()
-        await session.close()
 
 @pytest_asyncio.fixture()
 async def test_hotel(db_session: AsyncSession):

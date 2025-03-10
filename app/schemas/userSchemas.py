@@ -20,3 +20,5 @@ class UserResponse(UserBase):
 
     class Config:
         from_attributes = True
+class UserWithRoleResponse(UserResponse):
+    is_admin: bool

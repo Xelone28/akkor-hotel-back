@@ -1,26 +1,6 @@
 import pytest
-import pytest_asyncio
 from app.schemas.hotelSchemas import HotelCreate, HotelUpdate
-from app.schemas.userSchemas import UserCreate
 from app.services.hotelService import HotelService
-from app.services.userService import UserService
-
-@pytest_asyncio.fixture()
-async def test_hotel(db_session, test_user):
-    """Create a test hotel and assign it to the test user."""
-    hotel_data = HotelCreate(
-        name="Test Hotel",
-        address="Test Street, Paris",
-        description="A sample test hotel for functional testing.",
-        rating=4.5,
-        breakfast=True
-    )
-    hotel = await HotelService.create_hotel(db_session, hotel_data, test_user["id"])
-
-    yield hotel
-    success = await HotelService.delete_hotel(db_session, hotel.id)
-    assert success is True
-
 
 @pytest.mark.asyncio
 async def test_create_hotel(db_session, test_user):
@@ -42,11 +22,11 @@ async def test_create_hotel(db_session, test_user):
 @pytest.mark.asyncio
 async def test_get_hotel(db_session, test_hotel):
     """Ensure we can retrieve a hotel by ID."""
-    found_hotel = await HotelService.get_hotel(db_session, test_hotel.id)
+    found_hotel = await HotelService.get_hotel(db_session, test_hotel["id"])
 
     assert found_hotel is not None
-    assert found_hotel.id == test_hotel.id
-    assert found_hotel.name == test_hotel.name
+    assert found_hotel.id == test_hotel["id"]
+    assert found_hotel.name == test_hotel["name"]
 
 
 @pytest.mark.asyncio
@@ -63,10 +43,10 @@ async def test_get_hotels_with_filter(db_session, test_hotel):
     hotels_by_address = await HotelService.get_hotels(db_session, address="Test Street")
 
     assert len(hotels_by_name) > 0
-    assert hotels_by_name[0].id == test_hotel.id
+    assert hotels_by_name[0].id == test_hotel["id"]
     
     assert len(hotels_by_address) > 0
-    assert any(hotel.id == test_hotel.id for hotel in hotels_by_address)
+    assert any(hotel.id == test_hotel["id"] for hotel in hotels_by_address)
 
 
 @pytest.mark.asyncio
@@ -87,7 +67,7 @@ async def test_update_hotel(db_session, test_hotel):
         address="Updated Street, Paris"
     )
 
-    updated_hotel = await HotelService.update_hotel(db_session, test_hotel.id, update_data)
+    updated_hotel = await HotelService.update_hotel(db_session, test_hotel["id"], update_data)
 
     assert updated_hotel is not None
     assert updated_hotel.name == "Updated Test Hotel"

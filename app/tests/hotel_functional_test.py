@@ -1,13 +1,10 @@
+import os
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from app.schemas.hotelSchemas import HotelCreate, HotelUpdate
 from app.schemas.userSchemas import UserCreate
-from app.managers.databaseManager import Base
-from httpx import AsyncClient
-from app.main import app
-import os
 from dotenv import load_dotenv
 from app.services.hotelService import HotelService
 from app.services.userService import UserService

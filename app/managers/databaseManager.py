@@ -2,19 +2,28 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from databases import Database
+import os
+from dotenv import load_dotenv
 
-# Initialize SQLAlchemy base (important for Alembic)
+load_dotenv()
+
+ENV = os.getenv("ENV")
+if ENV == "PROD":
+    DATABASE_URL = os.getenv("DATABASE_URL")
+else:
+    DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+
 Base = declarative_base()
 
 class DatabaseManager:
     _instance = None
     
-    def __new__(cls, database_url: str = None):
+    def __new__(cls):
         """Singleton pattern for managing database connections."""
         if cls._instance is None:
             cls._instance = super(DatabaseManager, cls).__new__(cls)
 
-            db_url = database_url or os.getenv("DATABASE_URL")
+            db_url = DATABASE_URL
 
             if not db_url:
                 raise ValueError("DATABASE_URL is not set")
@@ -39,8 +48,8 @@ class DatabaseManager:
         if self.database.is_connected:
             await self.database.disconnect()
 
-async def get_db(database_url: str = None):
+async def get_db():
     """Dependency for getting a DB session with optional parameter."""
-    db_manager = DatabaseManager(database_url)
+    db_manager = DatabaseManager()
     async with db_manager.async_session() as session:
         yield session

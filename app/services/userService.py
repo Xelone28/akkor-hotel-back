@@ -2,7 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
 from app.models.userModel import User
-from app.schemas.userSchemas import UserCreate, UserUpdate, UserResponse
+from app.schemas.userSchemas import UserCreate, UserUpdate, UserResponse, UserWithRoleResponse
+from app.services.userRoleService import UserRoleService
 from typing import List, Optional
 import bcrypt  # Pour hacher les mots de passe
 
@@ -16,11 +17,23 @@ class UserService:
         return UserResponse.model_validate(user) if user else None
 
     @staticmethod
-    async def get_users(db: AsyncSession) -> List[UserResponse]:
-        """Récupère la liste de tous les utilisateurs sous forme de schéma."""
+    async def get_users(db: AsyncSession) -> List[UserWithRoleResponse]:
+        """Retrieve all users along with their roles."""
+
         result = await db.execute(select(User))
         users = result.scalars().all()
-        return [UserResponse.model_validate(user) for user in users]
+
+        user_responses = []
+        for user in users:
+            role = await UserRoleService.get_role_by_user(db, user.id)
+            user_responses.append(UserWithRoleResponse(
+                id=user.id,
+                email=user.email,
+                pseudo=user.pseudo,
+                is_admin=role.is_admin if role else False
+            ))
+
+        return user_responses
 
     @staticmethod
     async def create_user(db: AsyncSession, user_data: UserCreate) -> UserResponse:

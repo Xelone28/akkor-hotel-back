@@ -7,7 +7,7 @@ from app.managers.s3Manager import S3Manager
 def ensure_bucket_exists(s3_client, bucket_name):
     """Checks if the bucket exists. If not, create it."""
     try:
-        s3_client.head_bucket(Bucket=bucket_name)  # Check existence
+        s3_client.head_bucket(Bucket=bucket_name)
     except botocore.exceptions.ClientError as e:
         error_code = int(e.response['Error']['Code'])
         if error_code == 404:  # Bucket does not exist
@@ -23,7 +23,7 @@ def fake_s3():
             aws_access_key_id="minioadmin",
             aws_secret_access_key="minioadmin",
         )
-        ensure_bucket_exists(s3, "testbucket")  # Avoid 'AlreadyOwned' error
+        ensure_bucket_exists(s3, "testbucket")
         yield s3
 
 @pytest.mark.asyncio

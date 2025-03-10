@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.userSchemas import UserCreate, UserUpdate, UserResponse
+from app.schemas.userSchemas import UserCreate, UserUpdate, UserResponse, UserWithRoleResponse
 from app.services.userService import UserService
 from app.services.userRoleService import UserRoleService
 from app.schemas.userRoleSchemas import UserRoleCreate
@@ -31,9 +31,9 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Async
     access_token = create_access_token(data={"sub": user.pseudo}, expires_delta=timedelta(minutes=60))
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/", response_model=List[UserWithRoleResponse])
 async def get_users(db: AsyncSession = Depends(get_db)):
-    """Retrieve all users."""
+    """Retrieve all users including their admin status."""
     return await UserService.get_users(db)
 
 @router.get("/{user_id}", response_model=UserResponse)

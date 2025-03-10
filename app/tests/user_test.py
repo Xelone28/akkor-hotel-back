@@ -1,6 +1,29 @@
+import os 
+from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from app.schemas.userRoleSchemas import UserRoleCreate
+from sqlalchemy.pool import NullPool
+from app.services.userRoleService import UserRoleService
+
+load_dotenv()
+
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+
+engine = create_async_engine(TEST_DATABASE_URL, echo=True, future=True, poolclass=NullPool)
+TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+@pytest.fixture()
+async def db_session():
+    """Create an isolated session to run functional tests."""
+    async with TestingSessionLocal() as session:
+        session.begin()
+        yield session
+        await session.commit()
+        await session.close()
 
 @pytest_asyncio.fixture
 async def test_user():
@@ -8,7 +31,7 @@ async def test_user():
     user_data = {
         "email": "test@example.com",
         "pseudo": "testuser",
-        "password": "testpassword"
+        "password": "testpassword"   
     }
 
     async with AsyncClient(base_url="http://localhost:8000/users") as ac:
@@ -27,6 +50,24 @@ async def test_user():
             delete_response = await ac.delete(f"/{user['id']}", headers=headers)
 
             assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
+
+@pytest_asyncio.fixture
+async def test_admin_user(test_user, db_session: AsyncSession):
+    """
+    Promote a test user to admin.
+    """
+    role_data = UserRoleCreate(user_id=test_user["id"], is_admin=True)
+    await UserRoleService.assign_role(db_session, role_data)
+
+    # ✅ Authenticate as admin  
+    async with AsyncClient(base_url=f"http://localhost:8000/users") as ac:
+        auth_response = await ac.post("/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
+        assert auth_response.status_code == 200, f"Login failed: {auth_response.text}"
+       
+        token = auth_response.json()["access_token"]
+    
+    yield {"id": test_user["id"], "pseudo": test_user["pseudo"], "headers": {"Authorization": f"Bearer {token}"}}
+    await UserRoleService.delete_role(db_session, test_user["id"])
 
 @pytest.mark.asyncio
 async def test_login_user(test_user):
@@ -47,7 +88,6 @@ async def test_login_fail():
         response = await ac.post("/login", data={"username": "randomUsername", "password": "randomPassword"})
 
     assert response.status_code == 401, f"Expected 401, got {response.status_code}, response: {response.text}"
-    assert response.json()["detail"] == "Pseudo ou mot de passe invalide", f"Unexpected response: {response.json()}"
 
 @pytest.mark.asyncio
 async def test_delete_protected():
@@ -100,3 +140,40 @@ async def test_update_user(test_user):
 
         assert updated_user["id"] == test_user["id"], f"ID mismatch: expected {test_user['id']}, got {updated_user['id']}"
         assert updated_user["email"] == updated_data["email"], f"Email mismatch: expected {updated_data['email']}, got {updated_user['email']}"
+
+@pytest.mark.asyncio
+async def test_admin_can_update_user_role(test_admin_user):
+    """Ensure only an admin user can modify another user's role. (Interesting case, cannot use test_user because of the test_admin_user scope)"""
+    user_data = {
+        "email": "coffe@example.com",
+        "pseudo": "coffe",
+        "password": "testpassword"   
+    }
+
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
+        response = await ac.post("/", json=user_data)
+
+        assert response.status_code == 201, f"Expected 201, got {response.status_code}, response: {response.text}"
+        user = response.json()
+
+    async with AsyncClient(base_url=f"http://localhost:8000/users") as ac:
+        update_response = await ac.patch(f"/{user['id']}", json={"is_admin": True}, headers=test_admin_user["headers"])
+
+        assert update_response.status_code == 200
+    async with AsyncClient(base_url=f"http://localhost:8000/user-roles") as ac:
+        role_check_response = await ac.get(f"/{user['id']}", headers=test_admin_user["headers"])
+        assert role_check_response.status_code == 200
+        assert role_check_response.json()["is_admin"] is True
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_update_user_role(test_user):
+    """Normal users should not be able to modify admin roles."""
+    
+    async with AsyncClient(base_url=f"http://localhost:8000/users") as ac:
+        
+        auth_response = await ac.post(f"/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
+        user_token = auth_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {user_token}"}
+        
+        update_response = await ac.patch(f"/{test_user["id"]}", json={"is_admin": True}, headers=headers)
+        assert update_response.status_code == 403

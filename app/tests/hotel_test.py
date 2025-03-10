@@ -1,19 +1,40 @@
+import os
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from app.schemas.userRoleSchemas import UserRoleCreate
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+from app.services.userRoleService import UserRoleService
+
 
 BASE_URL = "http://localhost:8000"
 
-@pytest_asyncio.fixture
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+
+engine = create_async_engine(TEST_DATABASE_URL, echo=True, future=True, poolclass=NullPool)
+TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+@pytest.fixture()
+async def db_session():
+    """Create an isolated session for each functional test"""
+    async with TestingSessionLocal() as session:
+        session.begin()
+        yield session
+        await session.commit()
+        await session.close()
+
+@pytest_asyncio.fixture 
 async def test_user():
     """Create a user and delete it afterward"""
     user_data = {
         "email": "test@example.com",
         "pseudo": "testuser",
-        "password": "testpassword"
+        "password": "testpassword"   
     }
 
-    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
+    async with AsyncClient(base_url=f"{BASE_URL}/users") as ac:
         response = await ac.post("/", json=user_data)
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}, response: {response.text}"
@@ -21,7 +42,7 @@ async def test_user():
 
     yield {"id": user["id"], "pseudo": user["pseudo"], "email": user["email"], "password": "testpassword"}
 
-    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
+    async with AsyncClient(base_url=f"{BASE_URL}/users") as ac:
         auth_response = await ac.post("/login", data={"username": "testuser", "password": "testpassword"})
         if auth_response.status_code == 200:
             token = auth_response.json()["access_token"]
@@ -29,9 +50,26 @@ async def test_user():
             delete_response = await ac.delete(f"/{user['id']}", headers=headers)
 
             assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
+    
+@pytest_asyncio.fixture
+async def test_admin_user(test_user, db_session: AsyncSession):
+    """
+    Promote a test user to admin.
+    """
+    role_data = UserRoleCreate(user_id=test_user["id"], is_admin=True)
+    await UserRoleService.assign_role(db_session, role_data)
+
+    # ✅ Authenticate as admin  
+    async with AsyncClient(base_url=f"{BASE_URL}/users") as ac:
+        auth_response = await ac.post("/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
+        assert auth_response.status_code == 200, f"Login failed: {auth_response.text}"
+       
+        token = auth_response.json()["access_token"]
+    
+    yield {"id": test_user["id"], "pseudo": test_user["pseudo"], "headers": {"Authorization": f"Bearer {token}"}}
 
 @pytest_asyncio.fixture
-async def test_hotel(test_user):
+async def test_hotel(test_admin_user):
     """Create a hotel for testing and delete it afterward"""
     hotel_data = {
         "name": "Test Hotel",
@@ -42,22 +80,18 @@ async def test_hotel(test_user):
     }
 
     async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
-        auth_response = await ac.post(f"{BASE_URL}/users/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
-        token = auth_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
-
-        create_response = await ac.post("/", json=hotel_data, headers=headers)
+        create_response = await ac.post("/", json=hotel_data, headers=test_admin_user["headers"])
         assert create_response.status_code == 201, f"Expected 201, got {create_response.status_code}, response: {create_response.text}"
         hotel = create_response.json()
 
-    yield {**hotel, "headers": headers}
+    yield {**hotel, "headers": test_admin_user["headers"]}
 
     async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
-        delete_response = await ac.delete(f"/{hotel['id']}", headers=headers)
+        delete_response = await ac.delete(f"/{hotel['id']}", headers=test_admin_user["headers"])
         assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
 
 @pytest.mark.asyncio
-async def test_create_hotel(test_user):
+async def test_create_hotel(test_admin_user):
     """Test hotel creation and ownership assignment."""
     hotel_data = {
         "name": "Luxury Paris Hotel",
@@ -66,14 +100,9 @@ async def test_create_hotel(test_user):
         "rating": 4.8,
         "breakfast": True
     }
-
-    async with AsyncClient(base_url=f"{BASE_URL}") as ac:
-        auth_response = await ac.post(f"users/login", data={"username": test_user["pseudo"], "password": test_user["password"]})
-        token = auth_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
     
     async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
-        create_response = await ac.post("/", json=hotel_data, headers=headers)
+        create_response = await ac.post("/", json=hotel_data, headers=test_admin_user["headers"])
         assert create_response.status_code == 201, f"Expected 201, got {create_response.status_code}, response: {create_response.text}"
 
         created_hotel = create_response.json()
@@ -124,36 +153,21 @@ async def test_update_hotel(test_hotel):
         assert updated_hotel["address"] == "Updated Street, Paris"
 
 @pytest.mark.asyncio
-async def test_delete_hotel():
-    """Test deleting a hotel."""
-    user_data = {
-        "email": "testhotelfunction@example.com",
-        "pseudo": "testhotelfunction",
-        "password": "testpassword"
-    }
-
+async def test_delete_hotel(test_admin_user):
+    """Test that only admins can delete a hotel."""
     hotel_data = {
         "name": "Test Hotel",
         "address": "Test Street, Paris",
-        "description": "A sample hotel for functional testing.",
+        "description": "A sample hotel for testing.",
         "rating": 4.5,
         "breakfast": True
     }
 
-    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
-        response = await ac.post("/", json=user_data)
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}, response: {response.text}"
-
     async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
-        auth_response = await ac.post(f"{BASE_URL}/users/login", data={"username": user_data["pseudo"], "password": user_data["password"]})
-        token = auth_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
-
-        create_response = await ac.post("/", json=hotel_data, headers=headers)
+        create_response = await ac.post("/", json=hotel_data, headers=test_admin_user["headers"])
         assert create_response.status_code == 201, f"Expected 201, got {create_response.status_code}, response: {create_response.text}"
         hotel = create_response.json()
-
+        
     async with AsyncClient(base_url=f"{BASE_URL}/hotels") as ac:
-        delete_response = await ac.delete(f"/{hotel['id']}", headers=headers)
+        delete_response = await ac.delete(f"/{hotel['id']}", headers=test_admin_user["headers"])
         assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
-    

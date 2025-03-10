@@ -14,14 +14,6 @@ CREATE TABLE IF NOT EXISTS hotels (
     breakfast BOOLEAN DEFAULT FALSE
 );
 
-CREATE TABLE IF NOT EXISTS user_hotels (
-    user_id INTEGER NOT NULL,
-    hotel_id INTEGER NOT NULL,
-    PRIMARY KEY (user_id, hotel_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS rooms (
     id SERIAL PRIMARY KEY,
     hotel_id INTEGER NOT NULL,
@@ -29,6 +21,24 @@ CREATE TABLE IF NOT EXISTS rooms (
     number_of_beds INTEGER NOT NULL,
     FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL UNIQUE,
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+INSERT INTO public.users
+(id, email, pseudo, password)
+VALUES(1, 'admin@supinfo.com', 'admin', 'admin');
+
+INSERT INTO public.user_roles
+(user_id, is_admin)
+VALUES(1, true);
+
+ALTER SEQUENCE users_id_seq RESTART WITH 2;
+ALTER SEQUENCE user_roles_id_seq RESTART WITH 2;
 
 INSERT INTO hotels (name, address, description, rating, breakfast) VALUES
     ('Hilton Paris Opera', 'Paris, France', 'Luxury hotel in the heart of Paris.', 4.7, TRUE),

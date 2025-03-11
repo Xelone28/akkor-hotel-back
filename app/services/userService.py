@@ -99,11 +99,23 @@ class UserService:
         return UserResponse.model_validate(user) if user else None
 
     @staticmethod
-    async def get_user_by_pseudo(db: AsyncSession, pseudo: str) -> Optional[UserResponse]:
-        """Récupère un utilisateur par pseudo sous forme de schéma."""
+    async def get_user_by_pseudo(db: AsyncSession, pseudo: str) -> Optional[UserWithRoleResponse]:
+        """Retrieve a user by pseudo including their admin status."""
+        
         result = await db.execute(select(User).filter(User.pseudo == pseudo))
         user = result.scalars().first()
-        return UserResponse.model_validate(user) if user else None
+
+        if not user:
+            return None
+
+        role = await UserRoleService.get_role_by_user(db, user.id)
+
+        return UserWithRoleResponse(
+            id=user.id,
+            email=user.email,
+            pseudo=user.pseudo,
+            is_admin=role.is_admin if role else False
+        )
 
     @staticmethod
     async def get_user_by_pseudo_raw(db: AsyncSession, pseudo: str) -> Optional[User]:

@@ -5,6 +5,8 @@ on:
     branches: [main]
     tags:
       - "v*"
+  pull_request:
+    branches: [main]
 
 jobs:
   test:
@@ -64,7 +66,7 @@ jobs:
       - name: Run Tests  
         run: |
           poetry run pytest -v app/tests
-
+    
       - name: Show Docker Logs
         if: failure()
         run: |

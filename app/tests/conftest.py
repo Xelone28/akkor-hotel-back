@@ -132,8 +132,3 @@ async def test_room(test_hotel):
     async with AsyncClient(base_url=f"{BASE_URL}/rooms") as ac:
         delete_response = await ac.delete(f"/{room['id']}", headers=test_hotel["headers"])
         assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
-
-@pytest.fixture()
-def s3_mock(mocker):
-    mock_s3 = mocker.patch.object(S3Manager, '_instance', None)  # Reset singleton
-    return S3Manager()

@@ -290,3 +290,58 @@ async def test_delete_nonexistent_booking(db_session: AsyncSession, test_user):
     
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Booking not found"
+
+@pytest.mark.asyncio
+async def test_get_bookings_by_user_existing_user(test_user, test_room, db_session):
+    """Test that get_bookings_by_user returns correct bookings for an existing user."""
+    
+    booking_create_1 = BookingCreate(
+        room_id=test_room["id"],
+        start_date=date.today(),
+        end_date=date.today() + timedelta(days=2),
+        nbr_people=2,
+        breakfast=True
+    )
+    booking_create_2 = BookingCreate(
+        room_id=test_room["id"],
+        start_date=date.today() + timedelta(days=3),
+        end_date=date.today() + timedelta(days=5),
+        nbr_people=1,
+        breakfast=False
+    )
+    
+    user_response = UserResponse(
+        id=test_user["id"],
+        email=test_user["email"],
+        pseudo=test_user["pseudo"]
+    )
+    
+    booking1 = await BookingService.create_booking(db_session, booking_create_1, user_response)
+    booking2 = await BookingService.create_booking(db_session, booking_create_2, user_response)    
+
+    bookings = await BookingService.get_bookings_by_user(db_session, test_user["id"])
+    
+    assert isinstance(bookings, list)
+    assert len(bookings) == 2
+    assert any(b.id == booking1.id for b in bookings), "Booking1 not found in response"
+    assert any(b.id == booking2.id for b in bookings), "Booking2 not found in response"
+
+@pytest.mark.asyncio
+async def test_get_bookings_by_user_no_bookings(test_user, db_session):
+    """Test that get_bookings_by_user returns an empty list when user has no bookings."""
+    
+    bookings = await BookingService.get_bookings_by_user(db_session, test_user["id"])
+    
+    assert isinstance(bookings, list)
+    assert len(bookings) == 0, f"Expected 0 bookings, got {len(bookings)}"
+
+@pytest.mark.asyncio
+async def test_get_bookings_by_user_nonexistent_user(db_session):
+    """Test that get_bookings_by_user returns an empty list for a non-existent user_id."""
+    
+    non_existent_user_id = 999999
+    
+    bookings = await BookingService.get_bookings_by_user(db_session, non_existent_user_id)
+    
+    assert isinstance(bookings, list)
+    assert len(bookings) == 0, f"Expected 0 bookings for non-existent user, got {len(bookings)}"

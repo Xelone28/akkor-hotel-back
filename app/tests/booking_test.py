@@ -484,3 +484,149 @@ async def test_delete_booking_not_found(test_user):
 
     assert response.status_code == 404, f"Expected 404, got {response.status_code}, response: {response.text}"
     assert response.json()["detail"] == "Booking not found"
+
+@pytest.mark.asyncio
+async def test_get_bookings_by_user_as_admin(test_admin_user, test_user, test_room, db_session):
+    """Test that an admin can retrieve bookings for any user."""
+    
+    # Create bookings for test_user
+    booking_create_1 = BookingCreate(
+        room_id=test_room["id"],
+        start_date=date.today(),
+        end_date=date.today() + timedelta(days=2),
+        nbr_people=2,
+        breakfast=True
+    )
+    booking_create_2 = BookingCreate(
+        room_id=test_room["id"],
+        start_date=date.today() + timedelta(days=3),
+        end_date=date.today() + timedelta(days=5),
+        nbr_people=1,
+        breakfast=False
+    )
+    
+    user_response = UserResponse(id=test_user["id"], email=test_user["email"], pseudo=test_user["pseudo"])
+    
+    # Create two bookings
+    booking1 = await BookingService.create_booking(db_session, booking_create_1, user_response)
+    booking2 = await BookingService.create_booking(db_session, booking_create_2, user_response)
+    
+    async with AsyncClient(base_url=BASE_URL) as ac:
+        response = await ac.get(f"/bookings/user/{test_user['id']}", headers=test_admin_user["headers"])
+    
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    bookings = response.json()
+    assert isinstance(bookings, list)
+    assert len(bookings) == 2, f"Expected 2 bookings, got {len(bookings)}"
+    assert any(b["id"] == booking1.id for b in bookings), "Booking1 not found in response"
+    assert any(b["id"] == booking2.id for b in bookings), "Booking2 not found in response"
+
+@pytest.mark.asyncio
+async def test_get_bookings_by_user_as_self(test_user, test_room, db_session):
+    """Test that a user can retrieve only their own bookings."""
+    
+    # Create bookings for test_user
+    booking_create_1 = BookingCreate(
+        room_id=test_room["id"],
+        start_date=date.today(),
+        end_date=date.today() + timedelta(days=2),
+        nbr_people=2,
+        breakfast=True
+    )
+    booking_create_2 = BookingCreate(
+        room_id=test_room["id"],
+        start_date=date.today() + timedelta(days=3),
+        end_date=date.today() + timedelta(days=5),
+        nbr_people=1,
+        breakfast=False
+    )
+    
+    user_response = UserResponse(id=test_user["id"], email=test_user["email"], pseudo=test_user["pseudo"])
+    
+    # Create two bookings
+    booking1 = await BookingService.create_booking(db_session, booking_create_1, user_response)
+    booking2 = await BookingService.create_booking(db_session, booking_create_2, user_response)
+    
+    async with AsyncClient(base_url=BASE_URL) as ac:
+        response = await ac.get(f"/bookings/user/{test_user['id']}", headers=test_user["headers"])
+    
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    bookings = response.json()
+    assert isinstance(bookings, list)
+    assert len(bookings) == 2, f"Expected 2 bookings, got {len(bookings)}"
+    assert any(b["id"] == booking1.id for b in bookings), "Booking1 not found in response"
+    assert any(b["id"] == booking2.id for b in bookings), "Booking2 not found in response"
+
+@pytest.mark.asyncio
+async def test_get_bookings_by_user_unauthorized(test_user, test_room, db_session, test_admin_user):
+    """Test that a user cannot retrieve another user's bookings."""
+    
+    user_data = {
+        "email": "other_user_test@example.com",
+        "pseudo": "otherusertest",
+        "password": "otherpassword"
+    }
+
+    async with AsyncClient(base_url="http://localhost:8000/users") as ac:
+        response = await ac.post("/", json=user_data)
+        assert response.status_code == 201, f"Expected 201, got {response.status_code}, response: {response.text}"
+        other_user = response.json()
+
+        auth_response = await ac.post("/login", data={"username": user_data["pseudo"], "password": user_data["password"]})
+        if auth_response.status_code == 200:
+            other_token = auth_response.json()["access_token"]
+            other_headers = {"Authorization": f"Bearer {other_token}"}
+    
+    try:
+        # Create bookings for test_user
+        booking_create = BookingCreate(
+            room_id=test_room["id"],
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=2),
+            nbr_people=2,
+            breakfast=True
+        )
+        user_response = UserResponse(id=test_user["id"], email=test_user["email"], pseudo=test_user["pseudo"])
+        booking = await BookingService.create_booking(db_session, booking_create, user_response)
+        
+        async with AsyncClient(base_url=BASE_URL) as ac:
+            # other_user attempts to retrieve test_user's bookings
+            response = await ac.get(f"/bookings/user/{test_user['id']}", headers=other_headers)
+        
+        assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+        assert response.json()["detail"] == "Not authorized to view these bookings"
+    
+    finally:
+        # Cleanup: delete the other user
+        async with AsyncClient(base_url=BASE_URL) as ac:
+            delete_response = await ac.delete(f"/users/{other_user['id']}", headers=other_headers)
+            assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}"
+
+@pytest.mark.asyncio
+async def test_get_bookings_by_user_admin_nonexistent_user(test_admin_user, db_session):
+    """Test that an admin retrieves an empty list for a non-existent user."""
+    
+    non_existent_user_id = 999999  # Assuming this ID does not exist
+    
+    async with AsyncClient(base_url=BASE_URL) as ac:
+        response = await ac.get(f"/bookings/user/{non_existent_user_id}", headers=test_admin_user["headers"])
+    
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    bookings = response.json()
+    assert isinstance(bookings, list)
+    assert len(bookings) == 0, f"Expected 0 bookings, got {len(bookings)}"
+
+@pytest.mark.asyncio
+async def test_get_bookings_by_user_as_self_nonexistent_user(test_user, db_session):
+    """Test that a user cannot retrieve bookings for a non-existent user, even if it's themselves."""
+    
+    # Here, test_user's own ID is non-existent (which is tricky, as test_user exists)
+    # Instead, we assume trying to retrieve bookings with a user_id different from their own
+    non_existent_user_id = 999999  # Assuming this ID does not exist and is not the test_user's ID
+    assert non_existent_user_id != test_user["id"], "Non-existent user_id should differ from test_user's ID"
+    
+    async with AsyncClient(base_url=BASE_URL) as ac:
+        response = await ac.get(f"/bookings/user/{non_existent_user_id}", headers=test_user["headers"])
+    
+    assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+    assert response.json()["detail"] == "Not authorized to view these bookings"

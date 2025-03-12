@@ -7,7 +7,7 @@ install:
 run:
 	docker-compose up --build -d
 
-test:
+testing:
 	docker-compose down -v
 	docker-compose up --build -d
 	echo "⏳ Attente du démarrage de FastAPI..."

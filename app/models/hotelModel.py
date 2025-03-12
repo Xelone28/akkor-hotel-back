@@ -1,5 +1,4 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean
-from sqlalchemy.orm import relationship
 from app.managers.databaseManager import Base
 
 class Hotel(Base):
@@ -11,10 +10,3 @@ class Hotel(Base):
     description = Column(String, nullable=True)
     rating = Column(Float, nullable=True)
     breakfast = Column(Boolean, default=False)
-
-    images = relationship(
-        "HotelImage",
-        back_populates="hotel",
-        cascade="all, delete, delete-orphan",
-        passive_deletes=True
-    )

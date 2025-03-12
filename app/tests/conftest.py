@@ -1,6 +1,5 @@
 import os
 import pytest
-from app.managers.s3Manager import S3Manager
 import pytest_asyncio
 from httpx import AsyncClient
 from app.schemas.userRoleSchemas import UserRoleCreate
@@ -11,6 +10,7 @@ from app.services.userRoleService import UserRoleService
     
 
 BASE_URL = "http://localhost:8000"
+print(f"TEST_DATABASE_URL: {os.getenv('TEST_DATABASE_URL')}")
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 

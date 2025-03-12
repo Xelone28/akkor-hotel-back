@@ -5,6 +5,7 @@ from app.controllers import userController
 from app.controllers import hotelController
 from app.controllers import roomController
 from app.controllers import userRoleController
+from app.controllers import bookingController
 
 app = FastAPI()
 
@@ -22,6 +23,7 @@ app.include_router(userController.router)
 app.include_router(hotelController.router)
 app.include_router(roomController.router)
 app.include_router(userRoleController.router)
+app.include_router(bookingController.router)
 
 @app.get("/")
 def root():

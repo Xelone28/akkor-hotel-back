@@ -116,10 +116,6 @@ async def test_non_admin_cannot_update_user_role(test_user):
 @pytest.mark.asyncio
 async def test_get_users_includes_roles(test_user, test_admin_user):
     """Ensure GET /users includes users' admin status."""
-    print("simple user id",test_user["id"])
-    print("admin user id",test_admin_user["id"])
-
-    # there is an issue here because you are using both test_user and test_admin_user. The scope does not allow that
     
     async with AsyncClient(base_url=f"http://localhost:8000/users") as ac:
         response = await ac.get("/")

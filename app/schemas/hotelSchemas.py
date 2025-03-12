@@ -1,4 +1,4 @@
-from pydantic import BaseModel, condecimal
+from pydantic import BaseModel, condecimal, ConfigDict
 from typing import Optional
 
 class HotelBase(BaseModel):
@@ -21,5 +21,5 @@ class HotelUpdate(BaseModel):
 class HotelResponse(HotelBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+

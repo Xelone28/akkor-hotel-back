@@ -5,7 +5,7 @@ from app.models.userModel import User
 from app.schemas.userSchemas import UserCreate, UserUpdate, UserResponse, UserWithRoleResponse
 from app.services.userRoleService import UserRoleService
 from typing import List, Optional
-import bcrypt  # Pour hacher les mots de passe
+import bcrypt
 
 class UserService:
 
@@ -43,7 +43,7 @@ class UserService:
         new_user = User(
             email=user_data.email,
             pseudo=user_data.pseudo,
-            password=hashed_password  # Stocké sous forme de chaîne
+            password=hashed_password 
         )
 
         db.add(new_user)
@@ -122,3 +122,9 @@ class UserService:
         """Récupère un utilisateur par son pseudo avec accès au mot de passe."""
         result = await db.execute(select(User).filter(User.pseudo == pseudo))
         return result.scalars().first()  # Retourne directement un objet modèle SQLAlchemy
+    
+    @staticmethod
+    async def is_admin(db: AsyncSession, user_id: int) -> bool:
+        """Check if the user is an admin."""
+        role = await UserRoleService.get_role_by_user(db, user_id)
+        return role.is_admin if role else False

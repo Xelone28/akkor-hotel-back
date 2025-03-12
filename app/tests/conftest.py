@@ -1,8 +1,6 @@
 import os
 import pytest
-from app.managers.databaseManager import DatabaseManager
 from app.managers.s3Manager import S3Manager
-from fastapi.testclient import TestClient
 import pytest_asyncio
 from httpx import AsyncClient
 from app.schemas.userRoleSchemas import UserRoleCreate
@@ -10,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 from app.services.userRoleService import UserRoleService
-
+    
 
 BASE_URL = "http://localhost:8000"
 
@@ -32,8 +30,8 @@ async def db_session():
 async def test_user():
     """Create a user and delete it afterward"""
     user_data = {
-        "email": "test@example.com",
-        "pseudo": "testuser",
+        "email": "testing@example.com",
+        "pseudo": "testinguser",
         "password": "testpassword"   
     }
 
@@ -85,7 +83,7 @@ async def test_admin_user(db_session: AsyncSession):
         token = auth_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
     
-    yield {"id": user["id"], "pseudo": user["pseudo"], "headers": headers}
+    yield {"id": user["id"], "pseudo": user["pseudo"], "headers": headers, "is_admin": user["is_admin"], "email": user["email"]}
     
     await UserRoleService.delete_role(db_session, user["id"])
     
@@ -115,7 +113,25 @@ async def test_hotel(test_admin_user):
         delete_response = await ac.delete(f"/{hotel['id']}", headers=test_admin_user["headers"])
         assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
 
+@pytest_asyncio.fixture
+async def test_room(test_hotel):
+    """Create a room for testing and delete it afterward."""
+    room_data = {
+        "hotel_id": test_hotel["id"],
+        "price": 120.50,
+        "number_of_beds": 2
+    }
 
+    async with AsyncClient(base_url=f"{BASE_URL}/rooms") as ac:
+        create_response = await ac.post("/", json=room_data, headers=test_hotel["headers"])
+        assert create_response.status_code == 201, f"Expected 201, got {create_response.status_code}, response: {create_response.text}"
+        room = create_response.json()
+
+    yield {**room, "headers": test_hotel["headers"]}
+
+    async with AsyncClient(base_url=f"{BASE_URL}/rooms") as ac:
+        delete_response = await ac.delete(f"/{room['id']}", headers=test_hotel["headers"])
+        assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
 
 @pytest.fixture()
 def s3_mock(mocker):

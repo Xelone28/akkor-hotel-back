@@ -5,26 +5,6 @@ from app.schemas.roomSchemas import RoomCreate, RoomUpdate
 
 BASE_URL = "http://localhost:8000"
 
-@pytest_asyncio.fixture
-async def test_room(test_hotel):
-    """Create a room for testing and delete it afterward."""
-    room_data = {
-        "hotel_id": test_hotel["id"],
-        "price": 120.50,
-        "number_of_beds": 2
-    }
-
-    async with AsyncClient(base_url=f"{BASE_URL}/rooms") as ac:
-        create_response = await ac.post("/", json=room_data, headers=test_hotel["headers"])
-        assert create_response.status_code == 201, f"Expected 201, got {create_response.status_code}, response: {create_response.text}"
-        room = create_response.json()
-
-    yield {**room, "headers": test_hotel["headers"]}
-
-    async with AsyncClient(base_url=f"{BASE_URL}/rooms") as ac:
-        delete_response = await ac.delete(f"/{room['id']}", headers=test_hotel["headers"])
-        assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}, response: {delete_response.text}"
-
 @pytest.mark.asyncio
 async def test_non_admin_cannot_create_room(test_user, test_hotel):
     """Ensure that an unauthorized user cannot create a room."""

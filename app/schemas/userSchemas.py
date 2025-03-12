@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 
 class UserBase(BaseModel):
@@ -18,7 +18,9 @@ class UserResponse(UserBase):
     id: int
     is_admin: Optional[bool] = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 class UserWithRoleResponse(UserResponse):
     is_admin: bool
+
+    model_config = ConfigDict(from_attributes=True)

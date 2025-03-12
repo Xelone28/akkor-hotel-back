@@ -6,16 +6,17 @@ from app.controllers import hotelController
 from app.controllers import roomController
 from app.controllers import userRoleController
 from app.controllers import bookingController
+from app.controllers import hotelImageController
 
 app = FastAPI()
 
-origins = [""]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=[""],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -24,6 +25,7 @@ app.include_router(hotelController.router)
 app.include_router(roomController.router)
 app.include_router(userRoleController.router)
 app.include_router(bookingController.router)
+app.include_router(hotelImageController.router)
 
 @app.get("/")
 def root():

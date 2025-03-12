@@ -41,6 +41,15 @@ CREATE TABLE IF NOT EXISTS bookings (
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS hotel_image (
+    id SERIAL PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL UNIQUE,
+    url VARCHAR(1024) NOT NULL,
+    hotel_id INTEGER NOT NULL,
+    uploaded_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc'),
+    FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
+);
+
 INSERT INTO public.users
 (id, email, pseudo, password)
 VALUES(1, 'admin@supinfo.com', 'admin', 'admin');

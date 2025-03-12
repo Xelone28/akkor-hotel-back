@@ -1,43 +1,78 @@
-import boto3
 import os
-from dotenv import load_dotenv
+from boto3 import session
+from fastapi import HTTPException, UploadFile
+from app.utils.singleton import Singleton
 
-load_dotenv()
+class S3Manager(metaclass=Singleton):
+    """
+    S3Manager handles S3 (MinIO) connections and file operations such as upload and delete.
+    """
 
-S3_ENDPOINT = os.getenv("S3_ENDPOINT")
-S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
-S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
-S3_BUCKET = os.getenv("S3_BUCKET")
+    def __init__(self):
+        self.s3_client = self.__get_client()
+        self.bucket_name = os.getenv('BUCKET_NAME')
 
-if not all([S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET]):
-    raise ValueError("S3 configuration variables are missing")
-
-class S3Manager:
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(S3Manager, cls).__new__(cls)
-
-            cls._instance.s3_client = boto3.client(
+    def __get_client(self):
+        """
+        Establishes a connection to the S3 (MinIO) client.
+        """
+        try:
+            session_obj = session.Session()
+            client = session_obj.client(
                 's3',
-                endpoint_url=S3_ENDPOINT,
-                aws_access_key_id=S3_ACCESS_KEY,
-                aws_secret_access_key=S3_SECRET_KEY,
+                endpoint_url=os.getenv('ENDPOINT'),
+                aws_access_key_id=os.getenv('ACCESS_KEY'),
+                aws_secret_access_key=os.getenv('SECRET_KEY'),
+                region_name="fra1",
             )
             
-            cls._instance.bucket_name = S3_BUCKET
+            return client
+        except Exception as e:
+            raise Exception(f"Failed to establish S3 client connection: {str(e)}")
 
-        return cls._instance
+    def upload_file(self, file: UploadFile, object_name: str = None, public: bool = False) -> str:
+        """
+        Uploads an UploadFile to the specified S3 bucket.
 
-    def upload_file(self, file_path: str, object_name: str):
-        self.s3_client.upload_file(file_path, self.bucket_name, object_name)
-        return f"File {object_name} uploaded successfully"
+        :param file: UploadFile object from FastAPI
+        :param object_name: S3 object name. If not specified, uses the file's filename.
+        :param public: If True, sets the file's ACL to public-read.
+        :return: URL of the uploaded file
+        """
+        if object_name is None:
+            object_name = file.filename
 
-    def download_file(self, object_name: str, output_path: str):
-        self.s3_client.download_file(self.bucket_name, object_name, output_path)
-        return f"File {object_name} downloaded successfully to {output_path}"
+        try:
+            file.file.seek(0)
+            
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=object_name,
+                Body=file.file,
+                ContentType=file.content_type,
+                ACL='public-read' if public else 'private'
+            )
+            url = f"{os.getenv('ENDPOINT')}/{self.bucket_name}/{object_name}"
+            return url
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to udez pload file: {str(e)}")
 
-    def list_files(self):
-        response = self.s3_client.list_objects_v2(Bucket=self.bucket_name)
-        return [item["Key"] for item in response.get("Contents", [])]
+    def delete_file(self, object_name: str):
+        """
+        Deletes a file from the specified S3 bucket.
+
+        :param object_name: S3 object name to delete
+        """
+        try:
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=object_name)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+    def get_file_url(self, object_name: str) -> str:
+        """
+        Generates the URL for a file stored in S3.
+
+        :param object_name: S3 object name
+        :return: URL string
+        """
+        return f"{os.getenv('ENDPOINT')}/{self.bucket_name}/{object_name}"

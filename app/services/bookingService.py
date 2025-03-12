@@ -90,3 +90,11 @@ class BookingService:
         await db.delete(booking)
         await db.commit()
         return True
+    
+    @staticmethod
+    async def get_bookings_by_user(db: AsyncSession, user_id: int) -> List[BookingResponse]:
+        """Retrieve all bookings for a specific user."""
+        result = await db.execute(select(Booking).filter(Booking.user_id == user_id))
+        bookings = result.scalars().all()
+        return [BookingResponse.from_orm(booking) for booking in bookings]
+

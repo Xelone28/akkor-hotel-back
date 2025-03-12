@@ -53,3 +53,18 @@ async def delete_booking(
     success = await BookingService.delete_booking(db, booking_id, current_user)
     if not success:
         raise HTTPException(status_code=500, detail="Error deleting booking")
+
+@router.get("/user/{user_id}", response_model=List[BookingResponse])
+async def get_bookings_by_user(
+    user_id: int, 
+    db: AsyncSession = Depends(get_db), 
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Retrieve bookings for a specific user. Admins can retrieve any user's bookings; users can retrieve only their own."""
+    
+    is_admin = await UserService.is_admin(db, current_user.id)
+    if not is_admin and current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view these bookings")
+    
+    bookings = await BookingService.get_bookings_by_user(db, user_id)
+    return bookings

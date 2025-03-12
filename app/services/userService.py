@@ -62,7 +62,6 @@ class UserService:
         if not user:
             return None
         
-        # Mise à jour des champs fournis
         user_db = await db.execute(select(User).filter(User.id == user_id))
         user_db = user_db.scalars().first()
         
@@ -121,7 +120,7 @@ class UserService:
     async def get_user_by_pseudo_raw(db: AsyncSession, pseudo: str) -> Optional[User]:
         """Récupère un utilisateur par son pseudo avec accès au mot de passe."""
         result = await db.execute(select(User).filter(User.pseudo == pseudo))
-        return result.scalars().first()  # Retourne directement un objet modèle SQLAlchemy
+        return result.scalars().first()
     
     @staticmethod
     async def is_admin(db: AsyncSession, user_id: int) -> bool:

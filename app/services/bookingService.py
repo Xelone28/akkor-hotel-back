@@ -60,11 +60,9 @@ class BookingService:
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
         
-        # Check authorization
         if booking.user_id != current_user.id and not await UserService.is_admin(db, current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized to update this booking")
 
-        # Update fields if provided
         for key, value in booking_data.dict(exclude_unset=True).items():
             setattr(booking, key, value)
         
@@ -83,7 +81,6 @@ class BookingService:
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
         
-        # Check authorization
         if booking.user_id != current_user.id and not await UserService.is_admin(db, current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized to delete this booking")
 

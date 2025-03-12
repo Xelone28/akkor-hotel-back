@@ -57,7 +57,6 @@ async def test_get_booking(db_session: AsyncSession, test_user, test_room):
 
     booking = await BookingService.create_booking(db_session, booking_data, userReponse)
 
-    # Retrieve the booking
     retrieved_booking = await BookingService.get_booking(db_session, booking.id)
 
     assert retrieved_booking is not None

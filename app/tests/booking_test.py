@@ -50,10 +50,8 @@ async def test_create_booking_missing_fields(test_user, test_room):
     """Test that creating a booking with missing required fields fails."""
     booking_data = {
         "room_id": test_room["id"],
-        # "start_date" is missing
         "end_date": str(date.today() + timedelta(days=2)),
         "nbr_people": 2
-        # "breakfast" is optional
     }
 
     async with AsyncClient(base_url=BASE_URL) as ac:
@@ -275,7 +273,6 @@ async def test_update_booking_success_owner(test_user, test_room, db_session):
     userReponse = UserResponse(id=test_user["id"], email=test_user["email"], pseudo=test_user["pseudo"])
     booking = await BookingService.create_booking(db_session, booking_create, userReponse)
 
-    # Update data
     update_data = {
         "nbr_people": 3,
         "breakfast": True
@@ -374,7 +371,7 @@ async def test_update_booking_not_found(test_user):
     }
 
     async with AsyncClient(base_url=BASE_URL) as ac:
-        response = await ac.patch("/bookings/999999", json=update_data, headers=test_user["headers"])  # Assuming ID does not exist
+        response = await ac.patch("/bookings/999999", json=update_data, headers=test_user["headers"])
 
     assert response.status_code == 404, f"Expected 404, got {response.status_code}, response: {response.text}"
     assert response.json()["detail"] == "Booking not found"
@@ -471,7 +468,6 @@ async def test_delete_booking_unauthorized(test_user, test_room, db_session):
         assert response.status_code == 403, f"Expected 403, got {response.status_code}, response: {response.text}"
         assert response.json()["detail"] == "Not authorized to delete this booking"
     finally:
-        # Cleanup: delete the other user
         async with AsyncClient(base_url=BASE_URL) as ac:
             delete_response = await ac.delete(f"/users/{other_user['id']}", headers=other_headers)
             assert delete_response.status_code == 204
@@ -489,7 +485,6 @@ async def test_delete_booking_not_found(test_user):
 async def test_get_bookings_by_user_as_admin(test_admin_user, test_user, test_room, db_session):
     """Test that an admin can retrieve bookings for any user."""
     
-    # Create bookings for test_user
     booking_create_1 = BookingCreate(
         room_id=test_room["id"],
         start_date=date.today(),
@@ -507,7 +502,6 @@ async def test_get_bookings_by_user_as_admin(test_admin_user, test_user, test_ro
     
     user_response = UserResponse(id=test_user["id"], email=test_user["email"], pseudo=test_user["pseudo"])
     
-    # Create two bookings
     booking1 = await BookingService.create_booking(db_session, booking_create_1, user_response)
     booking2 = await BookingService.create_booking(db_session, booking_create_2, user_response)
     
@@ -525,7 +519,6 @@ async def test_get_bookings_by_user_as_admin(test_admin_user, test_user, test_ro
 async def test_get_bookings_by_user_as_self(test_user, test_room, db_session):
     """Test that a user can retrieve only their own bookings."""
     
-    # Create bookings for test_user
     booking_create_1 = BookingCreate(
         room_id=test_room["id"],
         start_date=date.today(),
@@ -543,7 +536,6 @@ async def test_get_bookings_by_user_as_self(test_user, test_room, db_session):
     
     user_response = UserResponse(id=test_user["id"], email=test_user["email"], pseudo=test_user["pseudo"])
     
-    # Create two bookings
     booking1 = await BookingService.create_booking(db_session, booking_create_1, user_response)
     booking2 = await BookingService.create_booking(db_session, booking_create_2, user_response)
     
@@ -578,7 +570,6 @@ async def test_get_bookings_by_user_unauthorized(test_user, test_room, db_sessio
             other_headers = {"Authorization": f"Bearer {other_token}"}
     
     try:
-        # Create bookings for test_user
         booking_create = BookingCreate(
             room_id=test_room["id"],
             start_date=date.today(),
@@ -590,14 +581,12 @@ async def test_get_bookings_by_user_unauthorized(test_user, test_room, db_sessio
         booking = await BookingService.create_booking(db_session, booking_create, user_response)
         
         async with AsyncClient(base_url=BASE_URL) as ac:
-            # other_user attempts to retrieve test_user's bookings
             response = await ac.get(f"/bookings/user/{test_user['id']}", headers=other_headers)
         
         assert response.status_code == 403, f"Expected 403, got {response.status_code}"
         assert response.json()["detail"] == "Not authorized to view these bookings"
     
     finally:
-        # Cleanup: delete the other user
         async with AsyncClient(base_url=BASE_URL) as ac:
             delete_response = await ac.delete(f"/users/{other_user['id']}", headers=other_headers)
             assert delete_response.status_code == 204, f"Expected 204, got {delete_response.status_code}"
@@ -606,7 +595,7 @@ async def test_get_bookings_by_user_unauthorized(test_user, test_room, db_sessio
 async def test_get_bookings_by_user_admin_nonexistent_user(test_admin_user, db_session):
     """Test that an admin retrieves an empty list for a non-existent user."""
     
-    non_existent_user_id = 999999  # Assuming this ID does not exist
+    non_existent_user_id = 999999
     
     async with AsyncClient(base_url=BASE_URL) as ac:
         response = await ac.get(f"/bookings/user/{non_existent_user_id}", headers=test_admin_user["headers"])
@@ -619,10 +608,8 @@ async def test_get_bookings_by_user_admin_nonexistent_user(test_admin_user, db_s
 @pytest.mark.asyncio
 async def test_get_bookings_by_user_as_self_nonexistent_user(test_user, db_session):
     """Test that a user cannot retrieve bookings for a non-existent user, even if it's themselves."""
-    
-    # Here, test_user's own ID is non-existent (which is tricky, as test_user exists)
-    # Instead, we assume trying to retrieve bookings with a user_id different from their own
-    non_existent_user_id = 999999  # Assuming this ID does not exist and is not the test_user's ID
+
+    non_existent_user_id = 999999
     assert non_existent_user_id != test_user["id"], "Non-existent user_id should differ from test_user's ID"
     
     async with AsyncClient(base_url=BASE_URL) as ac:

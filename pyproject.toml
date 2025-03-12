@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Gabriel Titeux <72764917+Xelone28@users.noreply.github.com>"]
 readme = "README.md"
-packages = [{include = "app"}]  # ✅ Make sure this folder exists!
+packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

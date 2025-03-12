@@ -28,6 +28,9 @@ services:
       ACCESS_KEY: ${ACCESS_KEY}
       SECRET_KEY: ${SECRET_KEY}
       BUCKET_NAME: ${BUCKET_NAME}
+      DATABASE_URL: ${DATABASE_URL}
+      TEST_DATABASE_URL: ${TEST_DATABASE_URL}
+
     depends_on:
       - postgres
     ports:

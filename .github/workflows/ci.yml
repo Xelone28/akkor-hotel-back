@@ -75,5 +75,9 @@ jobs:
             echo "-----------------------------------"
           done
 
+      - name: Show FastAPI Logs
+        if: failure()
+        run: docker logs fastapi_app
+
       - name: Stop all services  
         run: docker compose down -v
